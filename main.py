@@ -77,7 +77,7 @@ class ModernVocabularyApp(tk.Tk):
         if os.path.exists('words.json'):
             with open('words.json', 'r', encoding='utf-8') as f:
                 self.words = json.load(f)
-                
+
     def save_words(self):
         with open('words.json', 'w', encoding='utf-8') as f:
             json.dump(self.words, f, ensure_ascii=False, indent=2)
@@ -96,9 +96,14 @@ class ModernVocabularyApp(tk.Tk):
                  command=self.show_add_word).pack(pady=10, ipadx=20)
         
         ttk.Button(self.main_frame, 
-                 text="📝 Начать тест", 
+                 text="📝 Начать тест слов", 
                  style='Primary.TButton',
                  command=self.start_test).pack(pady=10, ipadx=20)
+        
+        ttk.Button(self.main_frame, 
+                 text="📝 Начать тест предложений", 
+                 style='Primary.TButton',
+                 command=self.start_sentence_test).pack(pady=10, ipadx=20)
         
         ttk.Button(self.main_frame, 
                  text="🚪 Выход", 
@@ -201,13 +206,40 @@ class ModernVocabularyApp(tk.Tk):
         self.score = 0
         self.show_next_question()
 
+    def generate_sentence(self):
+        if not self.words:
+            return ""
+        
+        eng_words = list(self.words.keys())
+        sentence_length = random.randint(3, 5)
+        selected_words = random.sample(eng_words, sentence_length)
+        
+        sentence = " ".join(selected_words) + "."
+        return sentence
+
+    def translate_sentence(self, sentence):
+        words = sentence.split()
+        translated_words = [self.words.get(word.lower(), word) for word in words]
+        return " ".join(translated_words) + "."
+
+    def start_sentence_test(self):
+        if not self.words:
+            messagebox.showwarning("Ошибка", "Сначала добавьте слова!")
+            return
+            
+        self.current_test = [(self.generate_sentence(), self.translate_sentence(self.generate_sentence())) for _ in range(5)]
+        random.shuffle(self.current_test)
+        self.test_index = 0
+        self.score = 0
+        self.show_next_question()
+
     def show_next_question(self):
         self.main_frame.pack_forget()
         self.test_frame.pack(expand=True)
         
         if self.test_index < len(self.current_test):
-            eng, rus = self.current_test[self.test_index]
-            self.question_label.config(text=f"Переведите слово: {eng}")
+            question, answer = self.current_test[self.test_index]
+            self.question_label.config(text=f"Переведите: {question}")
             self.answer_entry.delete(0, tk.END)
             self.result_label.config(text="")
             self.answer_entry.focus()
@@ -216,7 +248,7 @@ class ModernVocabularyApp(tk.Tk):
 
     def check_answer(self):
         user_answer = self.answer_entry.get().strip().lower()
-        correct_answer = self.current_test[self.test_index][1]
+        correct_answer = self.current_test[self.test_index][1].lower()
         
         if user_answer == correct_answer:
             self.score += 1
